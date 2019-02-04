@@ -1,0 +1,38 @@
+body{
+	font-family: Helvetica Neue, Arial;
+	overflow: hidden;
+}
+
+#myCanvas{
+	background: #f2fbff;
+}
+
+img{
+	display: none;
+}
+
+#log{
+	width: 100%;
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	vertical-align: text-bottom;
+}
+
+#view {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.wreck{
+	position: absolute;
+	background: url("../img/shipWreck.png");
+}
+
+#log p{
+	line-height: 15px;
+	font-size: 14px;
+}
