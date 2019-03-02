@@ -8,9 +8,8 @@ var TO_RADIANS = Math.PI / 180;
 //Static resources server
 app.use(express.static(__dirname + '/www'));
 
-var server = app.listen(process.env.PORT, function () {
-	var port = server.address().port;
-	console.log('Server running at port %s', port);
+var server = app.listen(80, function () {
+	console.log('Server running at port %s', 80);
 });
 
 var io = require('socket.io')(server);

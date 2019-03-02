@@ -1,14 +1,14 @@
 var INTERVAL = 10;
 var ROTATION_SPEED = 5;
-var MAP_SIZE = 1000;
+var MAP_SIZE = 5000;
 var TO_RADIANS = Math.PI / 180;
 
 var expImg = Image("expImg");
 var wreckImg = Image("wreckImg");
 var shipImg = Image("shipImg");
 
-
 function Game(canvas, socket) {
+    console.log(MAP_SIZE)
     this.ships = [];
     this.explosions = [];
     this.shots = [];
