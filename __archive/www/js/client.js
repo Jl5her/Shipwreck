@@ -9,6 +9,10 @@ $(document).ready(() => {
 
 	socket.on('connection', game.loadServerInfo)
 	
+	socket.emit('new player')
+
+	socket.on('state', Game.sync)
+
 	// socket.on('addShip', function(ship){
 	// 	game.addShip(ship.id, ship.isLocal, ship.x, ship.y, ship.hp, ship.charge)
 	// })
