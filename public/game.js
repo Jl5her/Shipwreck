@@ -68,7 +68,7 @@ class Game {
         this.ctx.beginPath()
         this.ctx.strokeStyle = "red"
         this.ctx.lineWidth = 1
-        this.ctx.rect(-this.cameraX, -this.cameraY, MAP_SIZE, MAP_SIZE)
+        this.ctx.rect(-this.cameraX, -this.cameraY, this.MAP_SIZE, this.MAP_SIZE)
         this.ctx.stroke()
         this.ctx.closePath()
     }
@@ -113,23 +113,14 @@ class Game {
         })
     }
 
-    drawBorder() {
-        this.ctx.beginPath()
-        this.ctx.strokeStyle = 'rgb(100,0,0)'
-        this.ctx.lineWidth = 3
-        //this.ctx.rect(-this.cameraX, -this.cameraY, mapSize, mapSize)
-        this.ctx.stroke()
-        this.ctx.closePath()
-    }
-
-    mainLoop() {
+    mainLoop() { /* Rendering */
         this.width = this.canvas.width = window.innerWidth
         this.height = this.canvas.height = window.innerHeight
 
-        var myShip = this.players.filter((player) => player.socketId == this.socketId)[0]
+        this.myShip = this.players.filter((player) => player.socketId == this.socketId)[0]
         
-        this.cameraX = myShip.x - (this.canvas.width / 2)
-        this.cameraY = myShip.y - (this.canvas.height / 2)
+        this.cameraX = this.myShip.x - (this.canvas.width / 2)
+        this.cameraY = this.myShip.y - (this.canvas.height / 2)
         
         this.ctx.clearRect(0, 0, this.width, this.height)
         
@@ -137,10 +128,10 @@ class Game {
         
         this.shots.forEach((shot) => shot.paint())
 
-        for(var i in this.players) {
-            var ship = new Ship(this, this.players[i])
+        this.players.forEach((playerData) => {
+            var ship = new Ship(this, playerData)
             ship.paint()
-        }
+        })
 
         this.socket.emit('movement', { socketId: this.socketId, movement: this.movement })
 

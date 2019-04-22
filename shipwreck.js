@@ -10,8 +10,9 @@ exports.initGame = function(sio) {
     io = sio
 
     setInterval(() => {
-    	update()
-
+    	updatePlayers()
+    	updateShots()
+    	checkCollisions()
     	io.sockets.emit('update', { players: players, shots: shots })
     }, 35)
 }
@@ -19,15 +20,18 @@ exports.initGame = function(sio) {
 exports.connection = function(socket) {
 	players.push(newPlayerData(socket.id))
 
-	socket.emit('connected', { socketId: socket.id })
-	socket.on('movement', movement)
+	socket.emit('connected', { socketId: socket.id, MAP_SIZE: MAP_SIZE })
+	socket.on('movement', receiveMovement )
 
-	socket.on('disconnect', () => {
-		players = players.filter((player) => player.socketId != socket.id)
+	socket.on('disconnect', disconnect )
+}
+
+function disconnect(socket) {
+	players = players.filter((player) => player.socketId != socket.id)
 	})
 }
 
-function movement(data) {
+function receiveMovement(data) {
 	for(var i in players) 
 		if(players[i].socketId == data.socketId) 
 			players[i].movement = data.movement
@@ -45,6 +49,14 @@ function update() {
 		if (player.movement.right){
 			player.r += 5
 		}
+
+function newShotData(player) {
+	return {
+		x: player.x,
+		y: player.y,
+		r: player.r,
+		speed: 10,
+		ownerId: player.socketId
 	}
 }
 
@@ -53,6 +65,7 @@ function newPlayerData(socketId) {
 		socketId: socketId,
 		x: MAP_SIZE * Math.random(),
 		y: MAP_SIZE * Math.random(),
+		r: 360 * Math.random(),
 		health: 30,
 		r: 360 * Math.random(),
 		movement: {left: false, right: false, up: false, down: false}

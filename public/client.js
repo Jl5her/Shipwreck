@@ -7,10 +7,11 @@ $(document).ready(() => {
        game = new Game(socket)
 
        game.socketId = data.socketId
+       game.MAP_SIZE = data.MAP_SIZE
        game.setControls()
     })
 
     socket.on('update', (data) => {
-    	game.update(data)
+    	game.receiveData(data)
     })
 })
