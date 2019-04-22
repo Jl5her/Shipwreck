@@ -1,7 +1,7 @@
 const CLIENT_LOOP_INTERVAL = 1000 / 60
 const TO_RADIANS = Math.PI / 180
 
-const MAP_SIZE = 5000
+minimap_enabled = false
 
 var expImg = new Image()
 expImg.src = "img/explosion.png"
@@ -18,9 +18,7 @@ enemyImg.src = "img/shipRed.png"
 
 class Game {
     constructor(socket) {
-        this.players = []
-        this.explosions = []
-        this.shots = []
+        this.socket = socket
         this.movement = {
             left: false,
             right: false,
@@ -31,24 +29,28 @@ class Game {
 
         this.canvas = document.getElementById("myCanvas")
         this.ctx = this.canvas.getContext("2d")
-        this.width = this.canvas.width = window.innerWidth
-        this.height = this.canvas.height = window.innerHeight
-        this.socket = socket
-        this.cameraX = 0
-        this.cameraY = 0
 
         setInterval(this.mainLoop.bind(this), CLIENT_LOOP_INTERVAL)
     }
 
-    update(data) {
+    receiveData(data) {
         this.players = data.players
-        this.ship = this.players.filter((player) => player.socketId == this.socketId)[0]
         this.shots = data.shots
+        
+        /* Which ship is the local player */
+        this.ship = this.players.filter((player) => player.socketId == this.socketId)[0]
     }
 
     drawBackground() {
         this.ctx.lineWidth = 0.65
         this.ctx.strokeStyle = "#C7CFD3"
+
+        // Draw Space
+        /*this.ctx.fillRect(0, 0, -this.cameraX, this.height)
+        this.ctx.fillRect(0, 0, this.width, -this.cameraY)
+        this.ctx.fillRect(-(this.cameraX - this.MAP_SIZE), 0, this.width, this.height)
+        this.ctx.fillRect(0, -(this.cameraY - this.MAP_SIZE), this.width, this.height)*/
+
         
         var cellSize = 40
         var ix = this.ship != undefined ? this.ship.x % cellSize : 0
@@ -126,7 +128,10 @@ class Game {
         
         this.drawBackground()
         
-        this.shots.forEach((shot) => shot.paint())
+        this.shots.forEach((shotData) => {
+            var shot = new Shot(this, shotData)
+            shot.paint()
+        })
 
         this.players.forEach((playerData) => {
             var ship = new Ship(this, playerData)
@@ -135,9 +140,40 @@ class Game {
 
         this.socket.emit('movement', { socketId: this.socketId, movement: this.movement })
 
-        this.drawBorder()
-        $("#status").html(parseInt(myShip.x) + ", " + parseInt(myShip.y))   
+        this.minimap()
+        this.status()
+    }
 
+    status() {
+        $("#status").html(`<p>${this.socketId}</p>` + 
+        `<p>${int(this.myShip.x)}, ${int(this.myShip.y)}, ${int(this.myShip.r)}°</p>` + 
+        `<p>${int(this.myShip.energy)} ${int(this.myShip.health)} ${int(this.myShip.cooldown)}</p>` +
+        `<p>${int(this.cameraX)}, ${int(this.cameraY)}`)
+    }
+
+    minimap() {
+        if (!minimap_enabled) return;
+        var minimap_size = 150
+        var scale = minimap_size / this.MAP_SIZE
+
+        this.ctx.fillStyle = "green"
+        var x = 5
+        var y = 5
+
+        this.ctx.lineWidth = 1
+        this.ctx.strokeStyle = "#666"
+        this.ctx.strokeRect(x, y, minimap_size, minimap_size)
+
+        this.players.forEach((playerData) => {
+            if (playerData.socketId == this.socketId)
+                this.ctx.fillStyle = "green"
+            else
+                this.ctx.fillStyle = "red"
+            this.ctx.beginPath()
+            this.ctx.arc(x + (playerData.x * scale), y + (playerData.y * scale), 2, 0, 2 * Math.PI)
+            this.ctx.fill()
+            this.ctx.closePath()
+        })
     }
 }
 
@@ -149,12 +185,11 @@ class Ship {
         this.y = data.y
         this.r = data.r
         this.health = data.health
+        this.energy = data.energy
+        this.dead = data.dead
+        this.movement = data.movement
+        this.cooldown = data.cooldown
         this.socketId = data.socketId
-    }
-
-    update() {
-        this.x += Math.cos(this.r * TO_RADIANS) * 5
-        this.y += Math.sin(this.r * TO_RADIANS) * 5
     }
 
     paint() {
@@ -166,19 +201,14 @@ class Ship {
         this.game.ctx.translate(x,y)
         this.game.ctx.rotate(this.r * TO_RADIANS)
 
-        if (this.dead) {
-            this.game.ctx.drawImage(wreckImg, -wreckImg.width/2, -wreckImg.height/2)
-            this.game.ctx.restore()
-            return
-        }
+        var img = this.game.socketId == this.socketId ? shipImg : enemyImg
 
-        var img = enemyImg
+        if (this.dead) 
+            img = wreckImg
 
-        if (this.game.socketId == this.socketId)
-            img = shipImg
+        this.game.ctx.drawImage(img, -img.width/2, -img.height/2)
 
-        this.game.ctx.drawImage(img, -shipImg.width/2, -shipImg.height/2)
-
+        if(this.dead) return
         /* Health */
 
         this.game.ctx.beginPath()
@@ -187,7 +217,6 @@ class Ship {
         this.game.ctx.moveTo(-20, -15)
         this.game.ctx.lineTo(-20, -15 + this.health)
         this.game.ctx.stroke()
-        this.game.ctx.fill()
         this.game.ctx.closePath()
 
         /* Power */
@@ -196,7 +225,7 @@ class Ship {
         this.game.ctx.lineWidth = 2
         this.game.ctx.strokeStyle = 'rgb(0,0,255)'
         this.game.ctx.moveTo(-25, -15)
-        this.game.ctx.lineTo(-25, -15 + this.health)
+        this.game.ctx.lineTo(-25, -15 + this.energy)
         this.game.ctx.stroke()
         this.game.ctx.closePath()
 
@@ -207,13 +236,13 @@ class Ship {
 }
 
 class Shot {
-    constructor (game, shotId) {
+    constructor (game, data) {
         this.game = game
-        this.shotId = shotId
+        this.ownerId = data.ownerId
 
-        this.x = game.shots[shotId].x
-        this.y = game.shots[shotId].y
-        this.r = game.shots[shotId].r
+        this.x = data.x
+        this.y = data.y
+        this.r = data.r
     }
 
     paint() {
@@ -225,4 +254,8 @@ class Shot {
         this.game.ctx.fill()
         this.game.ctx.closePath()
     }
+}
+
+function int(num) {
+    return parseInt(num)
 }
