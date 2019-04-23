@@ -21,13 +21,22 @@ exports.connection = function(socket) {
 	players.push(newPlayerData(socket.id))
 
 	socket.emit('connected', { socketId: socket.id, MAP_SIZE: MAP_SIZE })
-	socket.on('movement', receiveMovement )
 
-	socket.on('disconnect', disconnect )
+	socket.on('movement', receiveMovement )
+	socket.on('respawn', respawnSocket )
+	socket.on('disconnect', disconnect.bind(null, socket))
 }
 
 function disconnect(socket) {
 	players = players.filter((player) => player.socketId != socket.id)
+}
+
+function respawnSocket(data) {
+	var ship = players.filter((player) => player.socketId == data.socketId)[0]
+	if(ship.dead) {
+		var index = players.indexOf(ship)
+		players[index] = newPlayerData(data.socketId)
+	}
 }
 
 function receiveMovement(data) {

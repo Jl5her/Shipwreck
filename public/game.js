@@ -110,13 +110,23 @@ class Game {
                 case 32: // Space
                     game.movement.space = false
                     break
+                case 82: // R
+                    game.respawn()
+                    break
             }
         })
+    }
+
+    respawn() {
+        this.socket.emit('respawn', { socketId: this.socketId })
     }
 
     mainLoop() { /* Rendering */
         this.width = this.canvas.width = window.innerWidth
         this.height = this.canvas.height = window.innerHeight
+
+        if (this.players == undefined) // Has not received any data from server
+            return
 
         this.myShip = this.players.filter((player) => player.socketId == this.socketId)[0]
         
@@ -200,17 +210,24 @@ class Ship {
         this.game.ctx.translate(x,y)
         this.game.ctx.rotate(this.r * TO_RADIANS)
 
-        var img = this.game.socketId == this.socketId ? shipImg : enemyImg
-
-        if (this.dead) 
-            img = wreckImg
-
-        this.game.ctx.drawImage(img, -img.width/2, -img.height/2)
-
-        if(this.dead) {
+        if (this.dead) {
+            var img = wreckImg
+            this.game.ctx.drawImage(img, -img.width/2, -img.height/2)
             this.game.ctx.restore()
+
+            if(this.socketId == this.game.socketId) {
+                this.game.ctx.textAlign = 'center'
+                this.game.ctx.textBaseline = 'middle'
+                this.game.ctx.font = "145px Calibri"
+
+                this.game.ctx.fillText("HIT 'R' TO RESPAWN", this.game.canvas.width/2, this.game.canvas.height/2)
+            }
             return
         }
+
+        var img = this.game.socketId == this.socketId ? shipImg : enemyImg
+        this.game.ctx.drawImage(img, -img.width/2, -img.height/2)
+
         /* Health */
 
         this.game.ctx.beginPath()
