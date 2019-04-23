@@ -1,8 +1,6 @@
 const CLIENT_LOOP_INTERVAL = 1000 / 60
 const TO_RADIANS = Math.PI / 180
 
-minimap_enabled = false
-
 var expImg = new Image()
 expImg.src = "img/explosion.png"
 
@@ -29,6 +27,7 @@ class Game {
 
         this.canvas = document.getElementById("myCanvas")
         this.ctx = this.canvas.getContext("2d")
+        this.minimap_enabled = false
 
         setInterval(this.mainLoop.bind(this), CLIENT_LOOP_INTERVAL)
     }
@@ -152,7 +151,7 @@ class Game {
     }
 
     minimap() {
-        if (!minimap_enabled) return;
+        if (!this.minimap_enabled) return;
         var minimap_size = 150
         var scale = minimap_size / this.MAP_SIZE
 
@@ -208,7 +207,10 @@ class Ship {
 
         this.game.ctx.drawImage(img, -img.width/2, -img.height/2)
 
-        if(this.dead) return
+        if(this.dead) {
+            this.game.ctx.restore()
+            return
+        }
         /* Health */
 
         this.game.ctx.beginPath()
