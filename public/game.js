@@ -113,6 +113,9 @@ class Game {
                 case 82: // R
                     game.respawn()
                     break
+                case 77: // M
+                    game.minimap_enabled = !game.minimap_enabled
+                    break
             }
         })
     }
